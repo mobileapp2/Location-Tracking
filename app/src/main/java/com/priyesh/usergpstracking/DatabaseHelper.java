@@ -1,7 +1,9 @@
 package com.priyesh.usergpstracking;
 
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.Environment;
@@ -115,6 +117,62 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             Log.d("Copying Database", "fail, reason:", e);
             return false;
         }
+    }
+
+    public void insertLocation(String latitude, String longitude) {
+        SQLiteDatabase database = this.getWritableDatabase();
+        long result = -1;
+
+        try {
+            ContentValues values = new ContentValues();
+            values.put("latitude", latitude);
+            values.put("longitude", longitude);
+
+            database.beginTransaction();
+
+            result = database.insertOrThrow("location_entries", null, values);
+
+            if (result == -1) {
+                database.endTransaction();
+            } else
+                database.setTransactionSuccessful();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            database.endTransaction();
+            database.close();
+        }
+
+    }
+
+    public int getEntriesCount() {
+        String countQuery = "SELECT * FROM " + "location_entries";
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery(countQuery, null);
+        int count = cursor.getCount();
+        cursor.close();
+        return count;
+    }
+
+    public LocationEntryModel getLocationEntry(int lastEntry) {
+        LocationEntryModel data = new LocationEntryModel();
+        SQLiteDatabase database = this.getWritableDatabase();
+
+        Cursor cursor = database.query("location_entries", new String[]{"ID",
+                        "latitude", "longitude","DateTime"},
+                "ID=?", new String[]{String.valueOf(lastEntry)}, null,
+                null, null, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                data.latitude = cursor.getString(1);
+                data.longitude = cursor.getString(2);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        database.close();
+        return data;
     }
 
 
